@@ -84,7 +84,7 @@ def main():
     parser.add_argument('--weight_decay', type=float, default=0, help='weight decay (L2 loss on parameters).')
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--epochs', type=int, default=1000)
-    parser.add_argument('--runs', type=int, default=10)
+    parser.add_argument('--repeats', type=int, default=10)
     parser.add_argument('--patience', type=int, default=200, help='patience')
     parser.add_argument('--alpha', type=float, default=0.5, help='alpha_l')
     parser.add_argument('--norm', default='bn', help='norm layer.')
@@ -103,7 +103,7 @@ def main():
     Net = GCNIIdense_model
     evaluator = Evaluator(name='ogbn-arxiv')
     acc_list = []
-    for run in range(args.runs):
+    for run in range(args.repeats):
         model = Net(data.x.size(-1), args.hidden_channels,
                     dataset.num_classes, args.num_layers,
                     args.dropout,args.alpha,args.norm).to(device)

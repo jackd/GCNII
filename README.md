@@ -1,63 +1,119 @@
-# Simple and Deep Graph Convolutional Networks
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/simple-and-deep-graph-convolutional-networks/node-classification-on-cora-full-supervised)](https://paperswithcode.com/sota/node-classification-on-cora-full-supervised?p=simple-and-deep-graph-convolutional-networks)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/simple-and-deep-graph-convolutional-networks/node-classification-on-pubmed-full-supervised)](https://paperswithcode.com/sota/node-classification-on-pubmed-full-supervised?p=simple-and-deep-graph-convolutional-networks)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/simple-and-deep-graph-convolutional-networks/node-classification-on-cora-with-public-split)](https://paperswithcode.com/sota/node-classification-on-cora-with-public-split?p=simple-and-deep-graph-convolutional-networks)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/simple-and-deep-graph-convolutional-networks/node-classification-on-ppi)](https://paperswithcode.com/sota/node-classification-on-ppi?p=simple-and-deep-graph-convolutional-networks)
+# Simpler Shallow Simple and Deep Graph Convolutional Networks (SS-GCNII)
 
-This repository contains a PyTorch implementation of "Simple and Deep Graph Convolutional Networks".(https://arxiv.org/abs/2007.02133)
+This is a minimal extension of [GCNII](https://github.com/chennnM/GCNII) that explores the effectiveness of GCNII in the absence of variable transformations and non-linearities in propagation, and replacing the propagation mechanism entirely with a conjugate gradient personalized page rank solver. This is documented in [It's PageRank All The Way Down: Simplifying Deep Graph Networks (SDM23)](https://github.com/jackd/ppr-gnn-sdm23) (PPR-GNN).
 
 ## Dependencies
-- CUDA 10.1
-- python 3.6.9
-- pytorch 1.3.1
-- networkx 2.1
+
+- pytorch-geometric
+- networkx
 - scikit-learn
+- [torch_cg](https://github.com/sbarratt/torch_cg.git)
 
-## Datasets
+Example setup script using conda:
 
-The `data` folder contains three benchmark datasets(Cora, Citeseer, Pubmed), and the `newdata` folder contains four datasets(Chameleon, Cornell, Texas, Wisconsin) from [Geom-GCN](https://github.com/graphdml-uiuc-jlu/geom-gcn). We use the same semi-supervised setting as [GCN](https://github.com/tkipf/gcn) and the same full-supervised setting as Geom-GCN. PPI can be downloaded from [GraphSAGE](http://snap.stanford.edu/graphsage/).
+```bash
+# Create/activate conda environment
+conda create -n gcn2 python=3.7
+conda activate gcn2
 
-## Results
-Testing accuracy summarized below.
-| Dataset | Depth |  Metric | Dataset | Depth |  Metric |
-|:---:|:---:|:---:|:---:|:---:|:---:|
-| Cora       | 64 | 85.5  | Cham | 8  | 62.48 |
-| Cite       | 32 | 73.4  | Corn | 16 | 76.49 |
-| Pubm       | 16 | 80.3  | Texa | 32 | 77.84 |
-| Cora(full) | 64 | 88.49 | Wisc | 16 | 81.57 |
-| Cite(full) | 64 | 77.13 | PPI  | 9  | 99.56 |
-| Pubm(full) | 64 | 90.30 | obgn-arxiv | 16 | 72.74 |
+# Install dependencies from conda
+conda install pyg -c pyg
+conda install networkx scikit-learn
 
-
-## Usage
-
-- To replicate the semi-supervised results, run the following script
-```sh
-sh semi.sh
-```
-- To replicate the full-supervised results, run the following script
-```sh
-sh full.sh
-```
-- To replicate the inductive results of PPI, run the following script
-```sh
-sh ppi.sh
-```
-## Reference implementation
-The `PyG` folder includes a simple *PyTorch Geometric* implementation of GCNII.
-Requirements: `torch-geometric >= 1.5.0` and  `ogb >= 1.2.0`.
-- Running examples
-```
-python cora.py
-python arxiv.py
+# Install torch_cg
+git clone https://github.com/sbarratt/torch_cg.git
+pip install torch_cg
 ```
 
-## Citation
+## Semi Results
+
+| Dataset  | GCNII        | SS-GCNII     | CG-GCNII     |
+|----------|--------------|--------------|--------------|
+| Cora     | 85.23 ± 0.57 | 85.15 ± 0.43 | 85.00 ± 0.39 |
+| Citeseer | 73.14 ± 0.40 | 72.61 ± 1.17 | Hangs        |
+| PubMed   | 80.32 ± 0.51 | 80.03 ± 0.33 | 80.01 ± 0.31 |
+
+```bash
+python -u train.py --data cora --layer 64 --test --seed 0
+# acc = 0.8523 ± 0.005745432968889295
+python -u train.py --data cora --layer 64 --test --simplified --seed 0
+# acc = 0.8515 ± 0.004341658669218485
+python -u train.py --data cora --layer 64 --test --dropout=0.7 --cg --seed 0
+# acc = 0.85 ± 0.003872983346207421
+
+python -u train.py --data citeseer --layer 32 --hidden 256 --lamda 0.6 --dropout 0.7 --test --seed 0
+# acc = 0.7314 ± 0.003954743986657041
+python -u train.py --data citeseer --layer 32 --hidden 256 --lamda 0.6 --dropout 0.7 --test --simplified --seed 0
+# acc = 0.7261 ± 0.01167433081593971
+python -u train.py --data citeseer --layer 32 --hidden 256 --lamda 0.6 --dropout 0.8 --test --cg --seed 0
+# hangs?
+
+
+python -u train.py --data pubmed --layer 16 --hidden 256 --lamda 0.4 --dropout 0.5 --wd1 5e-4 --test --seed 0
+# acc = 0.8032 ± 0.005075431016179813
+python -u train.py --data pubmed --layer 16 --hidden 256 --lamda 0.4 --dropout 0.5 --wd1 5e-4 --test --simplified --seed 0
+# acc = 0.8003 ± 0.003287856444554722
+python -u train.py --data pubmed --layer 16 --hidden 256 --lamda 0.4 --dropout 0.6 --wd1 5e-4 --test --cg --seed 0
+# acc = 0.8002 ± 0.0031240998703626647
 ```
-@article{chenWHDL2020gcnii,
-  title = {Simple and Deep Graph Convolutional Networks},
-  author = {Ming Chen, Zhewei Wei and Zengfeng Huang, Bolin Ding and Yaliang Li},
-  year = {2020},
-  booktitle = {Proceedings of the 37th International Conference on Machine Learning},
-}
+
+## Full Results
+
+```bash
+python -u full-supervised.py --data cora --layer 64 --alpha 0.2 --weight_decay 1e-4 --seed 0
+# Test acc.:88.33 ± 1.18
+python -u full-supervised.py --data cora --layer 64 --alpha 0.2 --weight_decay 1e-4 --seed 0 --simplified
+# Test acc.:88.41 ± 1.15
+python -u full-supervised.py --data cora --layer 64 --alpha 0.2 --weight_decay 1e-4 --seed 0 --cg --dropout 0.6
+# Test acc.:88.61 ± 1.38
+
+python -u full-supervised.py --data citeseer --layer 64 --weight_decay 5e-6 --seed 0
+# Test acc.:77.13 ± 1.69
+python -u full-supervised.py --data citeseer --layer 64 --weight_decay 5e-6 --seed 0 --simplified
+# Test acc.:76.99 ± 1.65
+python -u full-supervised.py --data citeseer --layer 64 --weight_decay 5e-6 --seed 0 --cg --dropout 0.6
+# Test acc.:77.05 ± 1.84
+
+python -u full-supervised.py --data pubmed --layer 64 --alpha 0.1 --weight_decay 5e-6 --seed 0
+# Test acc.:89.57 ± 0.51
+python -u full-supervised.py --data pubmed --layer 64 --alpha 0.1 --weight_decay 5e-6 --seed 0 --simplified
+# Test acc.:87.38 ± 0.49
+python -u full-supervised.py --data pubmed --layer 64 --alpha 0.1 --weight_decay 5e-6 --seed 0 --cg --dropout 0.6
+# Test acc.:87.35 ± 0.51
+
+python -u full-supervised.py --data chameleon --layer 8 --lamda 1.5 --alpha 0.2 --weight_decay 5e-4 --seed 0
+# Test acc.:59.93 ± 2.74
+python -u full-supervised.py --data chameleon --layer 8 --lamda 1.5 --alpha 0.2 --weight_decay 5e-4 --seed 0 --simplified
+# Test acc.:53.84 ± 2.33
+python -u full-supervised.py --data chameleon --layer 8 --lamda 1.5 --alpha 0.2 --weight_decay 5e-4 --seed 0 --cg --dropout 0.6
+# Test acc.:42.52 ± 4.77
+
+python -u full-supervised.py --data cornell --layer 16 --lamda 1 --weight_decay 1e-3 --seed 0
+# Test acc.:75.41 ± 5.60
+python -u full-supervised.py --data cornell --layer 16 --lamda 1 --weight_decay 1e-3 --seed 0 --simplified
+# Test acc.:71.08 ± 6.05
+python -u full-supervised.py --data cornell --layer 16 --lamda 1 --weight_decay 1e-3 --seed 0 --cg --dropout 0.6
+# Test acc.:72.43 ± 8.09
+
+python -u full-supervised.py --data texas --layer 32 --lamda 1.5 --weight_decay 1e-4 --seed 0
+# Test acc.:69.73 ± 8.61
+python -u full-supervised.py --data texas --layer 32 --lamda 1.5 --weight_decay 1e-4 --seed 0 --simplified
+# Test acc.:65.68 ± 6.40
+python -u full-supervised.py --data texas --layer 32 --lamda 1.5 --weight_decay 1e-4 --seed 0 --cg --dropout 0.6
+# Test acc.:65.14 ± 5.60
+
+python -u full-supervised.py --data wisconsin --layer 16 --lamda 1 --weight_decay 5e-4 --seed 0
+# Test acc.:74.12 ± 5.60
+python -u full-supervised.py --data wisconsin --layer 16 --lamda 1 --weight_decay 5e-4 --seed 0 --simplified
+# Test acc.:70.59 ± 5.04
+python -u full-supervised.py --data wisconsin --layer 16 --lamda 1 --weight_decay 5e-4 --seed 0 --cg --dropout 0.6
+# Test acc.:68.63 ± 6.62
+```
+
+## Plot weights/pre-activations
+
+To generate Figure 4 from [PPR-GNN](https://github.com/jackd/ppr-gnn-sdm23), use. Note some parameters like axis limits are hard coded and may not be suitable for all runs.
+
+```bash
+python -u train.py --data cora --layer 64 --test --seed 0 --repeats 1 --hist 0 1 63
 ```

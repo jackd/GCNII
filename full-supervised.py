@@ -27,6 +27,8 @@ parser.add_argument('--dev', type=int, default=0, help='device id')
 parser.add_argument('--alpha', type=float, default=0.5, help='alpha_l')
 parser.add_argument('--lamda', type=float, default=0.5, help='lamda.')
 parser.add_argument('--variant', action='store_true', default=False, help='GCN* model.')
+parser.add_argument('--simplified', action='store_true', default=False, help='Use simplified GCN.')
+parser.add_argument('--cg', action='store_true', default=False, help='Use CG PageRank.')
 
 args = parser.parse_args()
 random.seed(args.seed)
@@ -79,6 +81,8 @@ def train(datastr,splitstr):
                 dropout=args.dropout,
                 lamda = args.lamda, 
                 alpha=args.alpha,
+                simplified=args.simplified,
+                cg=args.cg,
                 variant=args.variant).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr,
                             weight_decay=args.weight_decay)
@@ -117,4 +121,4 @@ for i in range(10):
     acc_list.append(train(datastr,splitstr))
     print(i,": {:.2f}".format(acc_list[-1]))
 print("Train cost: {:.4f}s".format(time.time() - t_total))
-print("Test acc.:{:.2f}".format(np.mean(acc_list)))
+print("Test acc.:{:.2f} ± {:.2f}".format(np.mean(acc_list), np.std(acc_list)))
